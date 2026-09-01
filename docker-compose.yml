@@ -1,0 +1,28 @@
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.1
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    ports: ["9200:9200"]
+    volumes: ["elastic-data:/usr/share/elasticsearch/data"]
+  api:
+    build: .
+    env_file: .env
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+    ports: ["5000:5000"]
+    depends_on:
+      elasticsearch: {condition: service_started}
+  ingestion:
+    build: .
+    profiles: ["ingestion"]
+    env_file: .env
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+    command: ["python", "ingest.py", "--batch-size", "100"]
+    depends_on:
+      elasticsearch: {condition: service_started}
+volumes:
+  elastic-data:
